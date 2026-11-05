@@ -1,0 +1,40 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "culture-shock-jobs"
+main = "src/index.ts"
+compatibility_date = "2025-01-15"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+[vars]
+ENVIRONMENT = "development"
+PUBLIC_BASE_URL = "http://localhost:8788"
+LOG_LEVEL = "info"
+OUTBOX_BATCH_SIZE = "50"
+
+# Secrets set with `wrangler secret put`:
+#   FIELD_ENCRYPTION_KEY, EMAIL_PROVIDER_API_KEY, EMAIL_RELAY_URL
+
+[[d1_databases]]
+binding = "DB"
+database_name = "culture_shock"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "../../db/migrations"
+
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "culture-shock-assets"
+
+[[queues.producers]]
+binding = "JOBS"
+queue = "culture-shock-jobs"
+
+[[queues.consumers]]
+queue = "culture-shock-jobs"
+max_batch_size = 25
+max_batch_timeout = 10
+max_retries = 5
+dead_letter_queue = "culture-shock-jobs-dlq"
+
+# Dispatch and delivery every minute, health every five, retention nightly.
+[triggers]
+crons = ["* * * * *", "*/5 * * * *", "15 3 * * *"]

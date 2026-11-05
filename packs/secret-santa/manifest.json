@@ -1,0 +1,240 @@
+{
+  "id": "secret-santa",
+  "schemaVersion": "1.0.0",
+  "version": "1.0.0",
+  "name": { "en-CA": "Secret Santa" },
+  "summary": {
+    "en-CA": "A digital-first gift exchange with optional clues and an end-of-experience reveal. No addresses are ever collected."
+  },
+  "provenance": { "origin": "builtin", "author": "Culture Shock" },
+  "requiredCapabilities": [
+    "enrollment.self-serve",
+    "matching.pair",
+    "activity.gift-exchange",
+    "clue.exchange",
+    "reveal.gated",
+    "suggestion.gift",
+    "communications.templated",
+    "insights.aggregate",
+    "ai.assistant"
+  ],
+  "configurationSchema": [
+    {
+      "key": "gift_budget_currency",
+      "type": "enum",
+      "label": { "en-CA": "Budget currency" },
+      "required": false,
+      "options": [
+        { "value": "cad", "label": { "en-CA": "Canadian dollar" } },
+        { "value": "usd", "label": { "en-CA": "US dollar" } },
+        { "value": "eur", "label": { "en-CA": "Euro" } },
+        { "value": "none", "label": { "en-CA": "No stated budget" } }
+      ],
+      "default": "none"
+    },
+    {
+      "key": "gift_budget_amount",
+      "type": "number",
+      "label": { "en-CA": "Suggested budget amount" },
+      "required": false,
+      "min": 0,
+      "max": 500
+    },
+    {
+      "key": "exchange_mode",
+      "type": "enum",
+      "label": { "en-CA": "Exchange mode" },
+      "required": true,
+      "options": [
+        { "value": "digital", "label": { "en-CA": "Digital gift or note" } },
+        { "value": "office", "label": { "en-CA": "In-office drop-off" } },
+        { "value": "independent", "label": { "en-CA": "Participants arrange privately" } }
+      ],
+      "default": "digital"
+    },
+    {
+      "key": "clues_enabled",
+      "type": "boolean",
+      "label": { "en-CA": "Allow anonymous clues" },
+      "required": false,
+      "default": true
+    }
+  ],
+  "defaults": {
+    "gift_budget_currency": "none",
+    "exchange_mode": "digital",
+    "clues_enabled": true
+  },
+  "objectives": [
+    {
+      "key": "holiday_engagement",
+      "title": { "en-CA": "Holiday engagement" },
+      "description": { "en-CA": "Give colleagues a light, optional way to take part in a seasonal moment together." },
+      "metric": "participation_rate"
+    },
+    {
+      "key": "relationship_building",
+      "title": { "en-CA": "Relationship building" },
+      "description": { "en-CA": "Create a reason for colleagues who rarely interact to exchange something thoughtful." },
+      "metric": "department_bridge_score"
+    }
+  ],
+  "eligibility": [
+    {
+      "id": "eligibility.enrolled-only",
+      "category": "eligibility",
+      "priority": 10,
+      "description": "Only enrolled participants can be matched.",
+      "when": { "field": "participant.state", "op": "neq", "value": "enrolled" },
+      "then": { "type": "deny", "code": "not_enrolled" }
+    }
+  ],
+  "rules": [
+    {
+      "id": "privacy.pseudonymous-until-reveal",
+      "category": "privacy",
+      "priority": 10,
+      "description": "Givers stay pseudonymous until the designer releases the reveal.",
+      "then": { "type": "setPrivacyMode", "mode": "reveal_at_end" }
+    },
+    {
+      "id": "matching.no-repeat",
+      "category": "matching",
+      "priority": 20,
+      "then": { "type": "setMatchingConstraint", "constraint": "no_repeat_match" }
+    },
+    {
+      "id": "activity.no-address-collection",
+      "category": "installation_safety",
+      "priority": 1,
+      "description": "Shipping details are never collected; physical exchange is arranged off-platform.",
+      "then": { "type": "setActivityCapability", "capability": "address-collection", "enabled": false }
+    },
+    {
+      "id": "schedule.close-enrollment",
+      "category": "schedule",
+      "priority": 30,
+      "then": { "type": "scheduleRelativeAction", "action": "close_enrollment", "anchor": "enrollment_close", "offsetMinutes": 0 }
+    },
+    {
+      "id": "schedule.reveal-at-end",
+      "category": "schedule",
+      "priority": 40,
+      "then": { "type": "scheduleRelativeAction", "action": "reveal", "anchor": "instance_end", "offsetMinutes": 0 }
+    }
+  ],
+  "workflow": {
+    "entry": "open",
+    "nodes": [
+      { "key": "open", "action": "open_enrollment", "next": ["invite"] },
+      { "key": "invite", "action": "send_notification", "templateKey": "enrollment_open", "next": ["remind"] },
+      { "key": "remind", "action": "send_notification", "templateKey": "enrollment_reminder", "next": ["close"] },
+      { "key": "close", "action": "close_enrollment", "next": ["match"] },
+      { "key": "match", "action": "run_matching", "timeoutMinutes": 120, "next": ["approve"] },
+      { "key": "approve", "action": "publish_matches", "humanGate": true, "next": ["announce"] },
+      { "key": "announce", "action": "send_notification", "templateKey": "match_published", "next": ["missions"] },
+      { "key": "missions", "action": "assign_missions", "next": ["reveal"] },
+      { "key": "reveal", "action": "reveal", "humanGate": true, "next": ["wrap"] },
+      { "key": "wrap", "action": "send_notification", "templateKey": "completed", "next": ["done"] },
+      { "key": "done", "action": "finish", "next": [] }
+    ]
+  },
+  "matching": {
+    "strategyKey": "cross-functional",
+    "groupSize": 2,
+    "allowTriadForOddCount": true,
+    "weights": { "department_diversity": 0.7, "novel_connection": 1, "schedule_overlap": 0.4 },
+    "hardConstraints": ["no_self_match", "no_repeat_match"]
+  },
+  "missions": [
+    {
+      "key": "choose_gift",
+      "title": { "en-CA": "Choose something thoughtful" },
+      "description": { "en-CA": "Pick a small gift, digital treat, or written note for the colleague you were matched with." },
+      "requiredForCompletion": true,
+      "asynchronousAlternative": { "en-CA": "A written note or digital gift card works equally well if you cannot meet in person." },
+      "dueOffsetMinutes": 10080
+    },
+    {
+      "key": "share_clue",
+      "title": { "en-CA": "Share an anonymous clue" },
+      "description": { "en-CA": "Optionally send one anonymous clue about yourself so your match has something to guess at." },
+      "requiredForCompletion": false,
+      "dueOffsetMinutes": 4320
+    }
+  ],
+  "activities": [
+    { "key": "gift", "type": "gift_exchange", "title": { "en-CA": "Gift exchange" }, "optional": false, "maxPerParticipant": 1 },
+    { "key": "clue", "type": "clue", "title": { "en-CA": "Anonymous clue" }, "optional": true, "maxPerParticipant": 3 }
+  ],
+  "communications": [
+    {
+      "key": "enrollment_open",
+      "channel": "email",
+      "trigger": "enrollment_open",
+      "subject": { "en-CA": "{{experience.name}} is open for sign-up" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\n{{organization.name}} is running {{experience.name}}. Taking part is optional. Sign up before {{experience.enrollmentClosesAt}} if you would like to join.\n\nOpen {{terminology.platformName}}: {{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "Hello {{participant.displayName}}. {{organization.name}} is running {{experience.name}}. Taking part is optional. Sign up before {{experience.enrollmentClosesAt}}. Link: {{links.experienceUrl}}"
+      }
+    },
+    {
+      "key": "enrollment_reminder",
+      "channel": "email",
+      "trigger": "enrollment_reminder",
+      "subject": { "en-CA": "Last call for {{experience.name}}" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\nSign-up for {{experience.name}} closes at {{experience.enrollmentClosesAt}}. No action is needed if you would rather sit this one out.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "Sign-up for {{experience.name}} closes at {{experience.enrollmentClosesAt}}. No action is needed if you would rather not join. {{links.experienceUrl}}"
+      }
+    },
+    {
+      "key": "match_published",
+      "channel": "email",
+      "trigger": "match_published",
+      "subject": { "en-CA": "Your {{terminology.matchSingular}} for {{experience.name}}" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\nYou have been matched with {{match.peerDisplayName}}. Your own identity stays hidden until the reveal.\n\nSee your mission: {{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "You have been matched with {{match.peerDisplayName}}. Your identity stays hidden until the reveal. {{links.experienceUrl}}"
+      }
+    },
+    {
+      "key": "completed",
+      "channel": "email",
+      "trigger": "completed",
+      "subject": { "en-CA": "{{experience.name}} has wrapped up" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\nThank you for taking part in {{experience.name}}. Your {{terminology.matchSingular}} was {{match.peerDisplayName}}.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "Thank you for taking part in {{experience.name}}. Your match was {{match.peerDisplayName}}. {{links.experienceUrl}}"
+      }
+    }
+  ],
+  "aiAssistants": [
+    {
+      "key": "gift_ideas",
+      "purpose": "gift_suggestion",
+      "promptTemplate": "Suggest five inclusive, low-cost gift ideas suitable for a workplace exchange. Avoid alcohol, food with common allergens, religious items, and anything requiring a home address. Interests supplied by the recipient: {{participant.pseudonym}}.",
+      "maxDataClassification": "internal",
+      "requiresHumanApproval": true
+    }
+  ],
+  "reveal": {
+    "enabled": true,
+    "mode": "reveal_at_end",
+    "requiresDesignerApproval": true,
+    "offsetMinutesFromEnd": 0
+  },
+  "insights": {
+    "metrics": ["participation_rate", "engagement_rate", "department_bridge_score", "experience_completion_rate"],
+    "minimumCohortSize": 10
+  },
+  "dataRequirements": ["department", "time_zone", "interests"]
+}

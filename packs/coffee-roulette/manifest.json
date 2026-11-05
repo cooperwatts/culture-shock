@@ -1,0 +1,201 @@
+{
+  "id": "coffee-roulette",
+  "schemaVersion": "1.0.0",
+  "version": "1.0.0",
+  "name": { "en-CA": "Coffee Roulette" },
+  "summary": {
+    "en-CA": "Recurring small-group introductions across teams, with conversation prompts and an asynchronous alternative for every round."
+  },
+  "provenance": { "origin": "builtin", "author": "Culture Shock" },
+  "requiredCapabilities": [
+    "enrollment.self-serve",
+    "matching.pair",
+    "matching.group",
+    "activity.conversation-prompt",
+    "activity.survey",
+    "communications.templated",
+    "insights.aggregate"
+  ],
+  "configurationSchema": [
+    {
+      "key": "group_size",
+      "type": "number",
+      "label": { "en-CA": "People per group" },
+      "required": true,
+      "min": 2,
+      "max": 4,
+      "default": 2
+    },
+    {
+      "key": "cadence",
+      "type": "enum",
+      "label": { "en-CA": "How often groups are formed" },
+      "required": true,
+      "options": [
+        { "value": "weekly", "label": { "en-CA": "Weekly" } },
+        { "value": "biweekly", "label": { "en-CA": "Every two weeks" } },
+        { "value": "monthly", "label": { "en-CA": "Monthly" } }
+      ],
+      "default": "monthly"
+    },
+    {
+      "key": "minimum_overlap_minutes",
+      "type": "number",
+      "label": { "en-CA": "Minimum shared working minutes" },
+      "required": false,
+      "min": 0,
+      "max": 480,
+      "default": 60
+    },
+    {
+      "key": "allow_async_only",
+      "type": "boolean",
+      "label": { "en-CA": "Allow groups with no live overlap to meet asynchronously" },
+      "required": false,
+      "default": true
+    }
+  ],
+  "defaults": {
+    "group_size": 2,
+    "cadence": "monthly",
+    "minimum_overlap_minutes": 60,
+    "allow_async_only": true
+  },
+  "objectives": [
+    {
+      "key": "cross_team_networking",
+      "title": { "en-CA": "Cross-team networking" },
+      "description": { "en-CA": "Introduce people who would not meet through their normal work." },
+      "metric": "organizational_reach"
+    },
+    {
+      "key": "remote_inclusion",
+      "title": { "en-CA": "Remote inclusion" },
+      "description": { "en-CA": "Make sure distributed colleagues get the same access to informal networks." },
+      "metric": "remote_inclusion_score"
+    }
+  ],
+  "eligibility": [
+    {
+      "id": "eligibility.enrolled-only",
+      "category": "eligibility",
+      "priority": 10,
+      "when": { "field": "participant.state", "op": "neq", "value": "enrolled" },
+      "then": { "type": "deny", "code": "not_enrolled" }
+    }
+  ],
+  "rules": [
+    {
+      "id": "privacy.pseudonymous",
+      "category": "privacy",
+      "priority": 10,
+      "then": { "type": "setPrivacyMode", "mode": "pseudonymous" }
+    },
+    {
+      "id": "matching.prefer-different-team",
+      "category": "matching",
+      "priority": 20,
+      "then": { "type": "setMatchingConstraint", "constraint": "different_team" }
+    },
+    {
+      "id": "matching.no-repeat",
+      "category": "matching",
+      "priority": 21,
+      "then": { "type": "setMatchingConstraint", "constraint": "no_repeat_match" }
+    },
+    {
+      "id": "inclusion.async-pool",
+      "category": "inclusion",
+      "priority": 30,
+      "description": "Participants with no live overlap are pooled into the asynchronous track rather than excluded.",
+      "when": { "field": "match.timeZoneOverlapMinutes", "op": "lte", "value": 30 },
+      "then": { "type": "setPool", "pool": "asynchronous" }
+    },
+    {
+      "id": "schedule.feedback-after-round",
+      "category": "schedule",
+      "priority": 40,
+      "then": { "type": "scheduleRelativeAction", "action": "collect_feedback", "anchor": "instance_end", "offsetMinutes": -1440 }
+    }
+  ],
+  "workflow": {
+    "entry": "open",
+    "nodes": [
+      { "key": "open", "action": "open_enrollment", "next": ["invite"] },
+      { "key": "invite", "action": "send_notification", "templateKey": "enrollment_open", "next": ["close"] },
+      { "key": "close", "action": "close_enrollment", "next": ["match"] },
+      { "key": "match", "action": "run_matching", "timeoutMinutes": 60, "next": ["approve"] },
+      { "key": "approve", "action": "publish_matches", "humanGate": true, "next": ["announce"] },
+      { "key": "announce", "action": "send_notification", "templateKey": "match_published", "next": ["missions"] },
+      { "key": "missions", "action": "assign_missions", "next": ["feedback"] },
+      { "key": "feedback", "action": "collect_feedback", "next": ["done"] },
+      { "key": "done", "action": "finish", "next": [] }
+    ]
+  },
+  "matching": {
+    "strategyKey": "remote-first",
+    "groupSize": 2,
+    "allowTriadForOddCount": true,
+    "weights": { "schedule_overlap": 0.9, "department_diversity": 0.7, "novel_connection": 1 },
+    "hardConstraints": ["no_self_match", "no_repeat_match"]
+  },
+  "missions": [
+    {
+      "key": "meet_up",
+      "title": { "en-CA": "Have a conversation" },
+      "description": { "en-CA": "Book 25 minutes with your group, or exchange answers to the prompts in writing if schedules do not line up." },
+      "requiredForCompletion": true,
+      "asynchronousAlternative": { "en-CA": "Trade written or recorded answers to the conversation prompts instead of meeting live." },
+      "dueOffsetMinutes": 20160
+    }
+  ],
+  "activities": [
+    { "key": "conversation", "type": "conversation", "title": { "en-CA": "Conversation prompts" }, "optional": false, "maxPerParticipant": 3 },
+    { "key": "followup", "type": "survey", "title": { "en-CA": "Follow-up survey" }, "optional": true, "maxPerParticipant": 1 }
+  ],
+  "communications": [
+    {
+      "key": "enrollment_open",
+      "channel": "email",
+      "trigger": "enrollment_open",
+      "subject": { "en-CA": "Join {{experience.name}}" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\n{{experience.name}} introduces you to colleagues outside your team. Joining is optional and you can leave at any time.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "{{experience.name}} introduces you to colleagues outside your team. Joining is optional and you can leave at any time. {{links.experienceUrl}}"
+      }
+    },
+    {
+      "key": "match_published",
+      "channel": "email",
+      "trigger": "match_published",
+      "subject": { "en-CA": "Meet {{match.peerDisplayName}}" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\nThis round you are paired with {{match.peerDisplayName}}. Times shown use {{experience.timeZone}}. If live time is hard to find, use the written alternative in your mission.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "This round you are paired with {{match.peerDisplayName}}. Times use {{experience.timeZone}}. A written alternative is available. {{links.experienceUrl}}"
+      }
+    },
+    {
+      "key": "feedback_request",
+      "channel": "email",
+      "trigger": "feedback_request",
+      "subject": { "en-CA": "How did your {{terminology.matchSingular}} go?" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\nOne optional question about this round of {{experience.name}}. Answers are reported only as group totals.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "One optional question about this round of {{experience.name}}. Answers are reported only as group totals. {{links.experienceUrl}}"
+      }
+    }
+  ],
+  "aiAssistants": [],
+  "reveal": { "enabled": false, "mode": "pseudonymous", "requiresDesignerApproval": true, "offsetMinutesFromEnd": 0 },
+  "insights": {
+    "metrics": ["participation_rate", "connection_score", "organizational_reach", "remote_inclusion_score"],
+    "minimumCohortSize": 10
+  },
+  "dataRequirements": ["department", "team", "time_zone", "remote_preference", "languages"]
+}

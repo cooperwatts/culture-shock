@@ -1,0 +1,40 @@
+#:schema node_modules/wrangler/config-schema.json
+name = "culture-shock-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-15"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+# Secrets are set with `wrangler secret put` and never committed:
+#   SESSION_COOKIE_KEY, FIELD_ENCRYPTION_KEY, EMAIL_LOOKUP_HMAC_KEY,
+#   OIDC_CLIENT_SECRET_<PROVIDER_KEY>, EMAIL_PROVIDER_API_KEY, AI_API_KEY_<PROVIDER_KEY>
+[vars]
+ENVIRONMENT = "development"
+# The browser-facing origin. In development that is the Next dev server, which
+# proxies /api/v1 through to this Worker.
+PUBLIC_BASE_URL = "http://localhost:3000"
+LOG_LEVEL = "info"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "culture_shock"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "../../db/migrations"
+
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "culture-shock-assets"
+
+[[queues.producers]]
+binding = "JOBS"
+queue = "culture-shock-jobs"
+
+# Workers AI is bound only when the Cloudflare adapter is enabled.
+# [ai]
+# binding = "AI"
+
+[env.staging]
+vars = { ENVIRONMENT = "staging", PUBLIC_BASE_URL = "https://staging.example.invalid", LOG_LEVEL = "info" }
+
+[env.production]
+vars = { ENVIRONMENT = "production", PUBLIC_BASE_URL = "https://example.invalid", LOG_LEVEL = "warn" }

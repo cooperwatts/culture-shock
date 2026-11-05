@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/cooperwatts/culture-shock/security/advisories/new
+    about: Report privately. Please do not open a public issue.
+  - name: Documentation
+    url: https://github.com/cooperwatts/culture-shock/tree/main/docs
+    about: Installation, configuration, operations and guides.
+  - name: Scope
+    url: https://github.com/cooperwatts/culture-shock/blob/main/docs/scope.md
+    about: Check here before reporting something missing. It may be out of scope by design.

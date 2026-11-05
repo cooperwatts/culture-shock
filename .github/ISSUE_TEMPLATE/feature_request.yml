@@ -1,0 +1,51 @@
+name: Feature or change proposal
+description: Suggest something the platform should do differently
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If you want to add a new programme type, you probably want a Culture Pack rather than a
+        platform change. See docs/guides/writing-a-culture-pack.md first. Packs are data files and
+        do not need a feature request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what stops you? Describe the situation, not the solution you have in mind.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried instead
+      description: Existing capabilities, configuration, or a pack. If none of them fit, say why.
+
+  - type: dropdown
+    id: sensitive-area
+    attributes:
+      label: Does this touch any of these?
+      multiple: true
+      options:
+        - Pack capability surface
+        - Privacy, consent or data retention
+        - Matching fairness
+        - Authorization
+        - None of these
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        Changes in those areas get reviewed more closely. It is not a rejection, it just means the
+        proposal needs to explain why the existing constraint should move.

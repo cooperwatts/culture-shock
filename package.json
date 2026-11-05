@@ -1,0 +1,44 @@
+{
+  "name": "culture-shock",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Self-hosted platform for running workplace connection programmes on Cloudflare.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cooperwatts/culture-shock.git"
+  },
+  "homepage": "https://github.com/cooperwatts/culture-shock#readme",
+  "bugs": {
+    "url": "https://github.com/cooperwatts/culture-shock/issues"
+  },
+  "maintainers": [
+    {
+      "name": "Culture Shock maintainers",
+      "email": "maintainers@example.invalid"
+    }
+  ],
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r --filter \"./packages/*\" run build",
+    "typecheck": "tsc -b tsconfig.build.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "pnpm run typecheck",
+    "db:migrate:local": "wrangler d1 migrations apply culture_shock --local --config apps/api/wrangler.toml",
+    "db:migrate:remote": "wrangler d1 migrations apply culture_shock --remote --config apps/api/wrangler.toml",
+    "dev:api": "pnpm --filter @culture-shock/api run dev",
+    "dev:web": "pnpm --filter @culture-shock/web run dev",
+    "seed:dev": "node scripts/seed-demo.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.6.4",
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8",
+    "wrangler": "^3.101.0"
+  }
+}

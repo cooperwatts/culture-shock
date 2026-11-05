@@ -1,0 +1,25 @@
+{
+  "name": "@culture-shock/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@culture-shock/ai": "workspace:*",
+    "@culture-shock/config": "workspace:*",
+    "@culture-shock/contracts": "workspace:*",
+    "@culture-shock/crypto": "workspace:*",
+    "@culture-shock/domain": "workspace:*",
+    "@culture-shock/matching": "workspace:*",
+    "@culture-shock/observability": "workspace:*",
+    "@culture-shock/pack-sdk": "workspace:*",
+    "@culture-shock/rules": "workspace:*",
+    "hono": "^4.6.16",
+    "zod": "^3.24.1"
+  }
+}

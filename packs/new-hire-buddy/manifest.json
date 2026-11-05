@@ -1,0 +1,215 @@
+{
+  "id": "new-hire-buddy",
+  "schemaVersion": "1.0.0",
+  "version": "1.0.0",
+  "name": { "en-CA": "New Hire Buddy" },
+  "summary": {
+    "en-CA": "Pairs each new colleague with an experienced buddy, with scheduled check-ins and onboarding milestones."
+  },
+  "provenance": { "origin": "builtin", "author": "Culture Shock" },
+  "requiredCapabilities": [
+    "enrollment.invite-only",
+    "matching.buddy",
+    "activity.check-in",
+    "activity.milestone",
+    "activity.survey",
+    "communications.templated",
+    "insights.aggregate"
+  ],
+  "configurationSchema": [
+    {
+      "key": "buddy_load_cap",
+      "type": "number",
+      "label": { "en-CA": "Maximum new hires per buddy" },
+      "required": true,
+      "min": 1,
+      "max": 5,
+      "default": 2
+    },
+    {
+      "key": "new_hire_window_days",
+      "type": "number",
+      "label": { "en-CA": "Treat someone as a new hire for this many days" },
+      "required": true,
+      "min": 7,
+      "max": 365,
+      "default": 90
+    },
+    {
+      "key": "check_in_count",
+      "type": "number",
+      "label": { "en-CA": "Number of scheduled check-ins" },
+      "required": false,
+      "min": 1,
+      "max": 12,
+      "default": 4
+    },
+    {
+      "key": "prefer_same_department",
+      "type": "boolean",
+      "label": { "en-CA": "Prefer a buddy in the same department" },
+      "required": false,
+      "default": true
+    }
+  ],
+  "defaults": {
+    "buddy_load_cap": 2,
+    "new_hire_window_days": 90,
+    "check_in_count": 4,
+    "prefer_same_department": true
+  },
+  "objectives": [
+    {
+      "key": "onboarding",
+      "title": { "en-CA": "Employee onboarding" },
+      "description": { "en-CA": "Give every new colleague one named person they can ask anything." },
+      "metric": "experience_completion_rate"
+    },
+    {
+      "key": "faster_integration",
+      "title": { "en-CA": "Faster integration" },
+      "description": { "en-CA": "Shorten the time before a new colleague feels connected to the wider organization." },
+      "metric": "connection_score"
+    }
+  ],
+  "eligibility": [
+    {
+      "id": "eligibility.enrolled-only",
+      "category": "eligibility",
+      "priority": 10,
+      "when": { "field": "participant.state", "op": "neq", "value": "enrolled" },
+      "then": { "type": "deny", "code": "not_enrolled" }
+    },
+    {
+      "id": "eligibility.buddy-requires-tenure",
+      "category": "eligibility",
+      "priority": 20,
+      "description": "Someone in their own first three months cannot be assigned as a buddy.",
+      "when": { "field": "participant.tenureBand", "op": "eq", "value": "lt_3_months" },
+      "then": { "type": "requireApproval", "code": "buddy_tenure_review" }
+    }
+  ],
+  "rules": [
+    {
+      "id": "privacy.pseudonymous-disabled",
+      "category": "privacy",
+      "priority": 10,
+      "description": "A buddy relationship only works with named people on both sides.",
+      "then": { "type": "setPrivacyMode", "mode": "reveal_at_end" }
+    },
+    {
+      "id": "matching.respect-buddy-capacity",
+      "category": "matching",
+      "priority": 20,
+      "then": { "type": "setMatchingConstraint", "constraint": "max_buddy_load", "value": 2 }
+    },
+    {
+      "id": "matching.no-repeat",
+      "category": "matching",
+      "priority": 21,
+      "then": { "type": "setMatchingConstraint", "constraint": "no_repeat_match" }
+    },
+    {
+      "id": "schedule.first-check-in",
+      "category": "schedule",
+      "priority": 30,
+      "then": { "type": "scheduleRelativeAction", "action": "send_reminder", "anchor": "match_publish", "offsetMinutes": 1440 }
+    }
+  ],
+  "workflow": {
+    "entry": "open",
+    "nodes": [
+      { "key": "open", "action": "open_enrollment", "next": ["invite"] },
+      { "key": "invite", "action": "send_notification", "templateKey": "enrollment_open", "next": ["close"] },
+      { "key": "close", "action": "close_enrollment", "next": ["match"] },
+      { "key": "match", "action": "run_matching", "timeoutMinutes": 60, "next": ["approve"] },
+      { "key": "approve", "action": "publish_matches", "humanGate": true, "next": ["announce"] },
+      { "key": "announce", "action": "send_notification", "templateKey": "match_published", "next": ["missions"] },
+      { "key": "missions", "action": "assign_missions", "next": ["checkin"] },
+      { "key": "checkin", "action": "send_notification", "templateKey": "mission_reminder", "next": ["feedback"] },
+      { "key": "feedback", "action": "collect_feedback", "next": ["done"] },
+      { "key": "done", "action": "finish", "next": [] }
+    ]
+  },
+  "matching": {
+    "strategyKey": "new-hire-friendly",
+    "groupSize": 2,
+    "allowTriadForOddCount": false,
+    "weights": { "buddy_tenure": 1, "same_department": 0.7, "schedule_overlap": 0.8, "buddy_availability": 0.6 },
+    "hardConstraints": ["no_self_match", "respect_capacity"]
+  },
+  "missions": [
+    {
+      "key": "first_conversation",
+      "title": { "en-CA": "First conversation" },
+      "description": { "en-CA": "Say hello and agree how you will keep in touch over the next few weeks." },
+      "requiredForCompletion": true,
+      "asynchronousAlternative": { "en-CA": "A written introduction and a shared document of questions works if your hours do not overlap." },
+      "dueOffsetMinutes": 4320
+    },
+    {
+      "key": "thirty_day_check_in",
+      "title": { "en-CA": "Thirty-day check-in" },
+      "description": { "en-CA": "Review what is going well and what is still unclear after the first month." },
+      "requiredForCompletion": true,
+      "dueOffsetMinutes": 43200
+    },
+    {
+      "key": "introductions",
+      "title": { "en-CA": "Two introductions" },
+      "description": { "en-CA": "Introduce your new colleague to two people outside their immediate team." },
+      "requiredForCompletion": false,
+      "dueOffsetMinutes": 20160
+    }
+  ],
+  "activities": [
+    { "key": "check_in", "type": "check_in", "title": { "en-CA": "Check-in" }, "optional": false, "maxPerParticipant": 12 },
+    { "key": "milestone", "type": "milestone", "title": { "en-CA": "Onboarding milestone" }, "optional": false, "maxPerParticipant": 10 },
+    { "key": "pulse", "type": "survey", "title": { "en-CA": "Onboarding pulse" }, "optional": true, "maxPerParticipant": 2 }
+  ],
+  "communications": [
+    {
+      "key": "enrollment_open",
+      "channel": "email",
+      "trigger": "enrollment_open",
+      "subject": { "en-CA": "You have been invited to {{experience.name}}" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\n{{organization.name}} runs {{experience.name}} to pair new colleagues with an experienced buddy. Let us know whether you would like to take part.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "{{organization.name}} runs {{experience.name}} to pair new colleagues with an experienced buddy. Let us know whether you would like to take part. {{links.experienceUrl}}"
+      }
+    },
+    {
+      "key": "match_published",
+      "channel": "email",
+      "trigger": "match_published",
+      "subject": { "en-CA": "Meet your buddy, {{match.peerDisplayName}}" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\nYou have been paired with {{match.peerDisplayName}} for {{experience.name}}. Your first mission is a short introduction.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "You have been paired with {{match.peerDisplayName}} for {{experience.name}}. Your first mission is a short introduction. {{links.experienceUrl}}"
+      }
+    },
+    {
+      "key": "mission_reminder",
+      "channel": "email",
+      "trigger": "mission_reminder",
+      "subject": { "en-CA": "Time for your next check-in" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\nYour next check-in for {{experience.name}} is due. Fifteen minutes is usually enough.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "Your next check-in for {{experience.name}} is due. Fifteen minutes is usually enough. {{links.experienceUrl}}"
+      }
+    }
+  ],
+  "aiAssistants": [],
+  "reveal": { "enabled": false, "mode": "reveal_at_end", "requiresDesignerApproval": true, "offsetMinutesFromEnd": 0 },
+  "insights": {
+    "metrics": ["participation_rate", "experience_completion_rate", "connection_score", "remote_inclusion_score"],
+    "minimumCohortSize": 10
+  },
+  "dataRequirements": ["department", "team", "time_zone", "tenure_band", "remote_preference"]
+}

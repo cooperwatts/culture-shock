@@ -1,0 +1,180 @@
+{
+  "id": "appreciation-week",
+  "schemaVersion": "1.0.0",
+  "version": "1.0.0",
+  "name": { "en-CA": "Appreciation Week" },
+  "summary": {
+    "en-CA": "A week of peer recognition. No gifts, no matching requirement, and no reveal mechanics."
+  },
+  "provenance": { "origin": "builtin", "author": "Culture Shock" },
+  "requiredCapabilities": [
+    "enrollment.self-serve",
+    "activity.recognition",
+    "activity.survey",
+    "communications.templated",
+    "insights.aggregate"
+  ],
+  "configurationSchema": [
+    {
+      "key": "recognition_visibility",
+      "type": "enum",
+      "label": { "en-CA": "Who can see a recognition" },
+      "required": true,
+      "options": [
+        { "value": "recipient_only", "label": { "en-CA": "Recipient only" } },
+        { "value": "team", "label": { "en-CA": "Recipient and their team" } },
+        { "value": "organization", "label": { "en-CA": "Everyone in the organization" } }
+      ],
+      "default": "recipient_only"
+    },
+    {
+      "key": "require_moderation",
+      "type": "boolean",
+      "label": { "en-CA": "Review messages before they are visible" },
+      "required": false,
+      "default": true
+    },
+    {
+      "key": "max_recognitions_per_person",
+      "type": "number",
+      "label": { "en-CA": "Maximum recognitions each person may send" },
+      "required": false,
+      "min": 1,
+      "max": 50,
+      "default": 10
+    }
+  ],
+  "defaults": {
+    "recognition_visibility": "recipient_only",
+    "require_moderation": true,
+    "max_recognitions_per_person": 10
+  },
+  "objectives": [
+    {
+      "key": "recognition",
+      "title": { "en-CA": "Recognition" },
+      "description": { "en-CA": "Make everyday good work visible to the people who did it." },
+      "metric": "engagement_rate"
+    },
+    {
+      "key": "gratitude",
+      "title": { "en-CA": "Gratitude" },
+      "description": { "en-CA": "Give colleagues a simple, low-pressure way to say thank you." },
+      "metric": "participation_rate"
+    }
+  ],
+  "eligibility": [
+    {
+      "id": "eligibility.enrolled-only",
+      "category": "eligibility",
+      "priority": 10,
+      "when": { "field": "participant.state", "op": "neq", "value": "enrolled" },
+      "then": { "type": "deny", "code": "not_enrolled" }
+    }
+  ],
+  "rules": [
+    {
+      "id": "privacy.never-reveal",
+      "category": "privacy",
+      "priority": 10,
+      "description": "Appreciation Week has no hidden identities to reveal.",
+      "then": { "type": "setPrivacyMode", "mode": "never_reveal" }
+    },
+    {
+      "id": "activity.gifts-disabled",
+      "category": "installation_safety",
+      "priority": 1,
+      "then": { "type": "setActivityCapability", "capability": "gift-exchange", "enabled": false }
+    },
+    {
+      "id": "activity.recognition-enabled",
+      "category": "activity",
+      "priority": 20,
+      "then": { "type": "setActivityCapability", "capability": "recognition", "enabled": true }
+    },
+    {
+      "id": "schedule.midweek-nudge",
+      "category": "schedule",
+      "priority": 30,
+      "then": { "type": "scheduleRelativeAction", "action": "send_reminder", "anchor": "instance_start", "offsetMinutes": 2880 }
+    }
+  ],
+  "workflow": {
+    "entry": "open",
+    "nodes": [
+      { "key": "open", "action": "open_enrollment", "next": ["invite"] },
+      { "key": "invite", "action": "send_notification", "templateKey": "enrollment_open", "next": ["missions"] },
+      { "key": "missions", "action": "assign_missions", "next": ["nudge"] },
+      { "key": "nudge", "action": "send_notification", "templateKey": "mission_reminder", "next": ["feedback"] },
+      { "key": "feedback", "action": "collect_feedback", "next": ["wrap"] },
+      { "key": "wrap", "action": "send_notification", "templateKey": "completed", "next": ["done"] },
+      { "key": "done", "action": "finish", "next": [] }
+    ]
+  },
+  "matching": {
+    "strategyKey": "diversity-optimized",
+    "groupSize": 2,
+    "allowTriadForOddCount": false,
+    "weights": {},
+    "hardConstraints": ["no_self_match"]
+  },
+  "missions": [
+    {
+      "key": "recognize_three",
+      "title": { "en-CA": "Recognize three colleagues" },
+      "description": { "en-CA": "Send a short, specific thank-you to three people whose work made a difference to you." },
+      "requiredForCompletion": true,
+      "asynchronousAlternative": { "en-CA": "Write your messages whenever suits your schedule; nothing is time-boxed to a meeting." },
+      "dueOffsetMinutes": 7200
+    }
+  ],
+  "activities": [
+    { "key": "recognition", "type": "recognition", "title": { "en-CA": "Send recognition" }, "optional": false, "maxPerParticipant": 10 },
+    { "key": "pulse", "type": "survey", "title": { "en-CA": "Closing pulse survey" }, "optional": true, "maxPerParticipant": 1 }
+  ],
+  "communications": [
+    {
+      "key": "enrollment_open",
+      "channel": "email",
+      "trigger": "enrollment_open",
+      "subject": { "en-CA": "{{experience.name}} starts now" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\n{{organization.name}} is running {{experience.name}}. Take a few minutes this week to thank colleagues whose work helped you.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "{{organization.name}} is running {{experience.name}}. Take a few minutes to thank colleagues whose work helped you. {{links.experienceUrl}}"
+      }
+    },
+    {
+      "key": "mission_reminder",
+      "channel": "email",
+      "trigger": "mission_reminder",
+      "subject": { "en-CA": "A quick thank-you goes a long way" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\n{{experience.name}} runs until {{experience.endsAt}}. If someone helped you recently, this is a good moment to say so.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "{{experience.name}} runs until {{experience.endsAt}}. If someone helped you recently, this is a good moment to say so. {{links.experienceUrl}}"
+      }
+    },
+    {
+      "key": "completed",
+      "channel": "email",
+      "trigger": "completed",
+      "subject": { "en-CA": "Thank you for taking part in {{experience.name}}" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\n{{experience.name}} has finished. Thank you for the recognition you shared with colleagues at {{organization.name}}.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "{{experience.name}} has finished. Thank you for the recognition you shared with colleagues at {{organization.name}}. {{links.experienceUrl}}"
+      }
+    }
+  ],
+  "aiAssistants": [],
+  "reveal": { "enabled": false, "mode": "never_reveal", "requiresDesignerApproval": true, "offsetMinutesFromEnd": 0 },
+  "insights": {
+    "metrics": ["participation_rate", "engagement_rate", "organizational_reach", "remote_inclusion_score"],
+    "minimumCohortSize": 10
+  },
+  "dataRequirements": ["department", "time_zone"]
+}

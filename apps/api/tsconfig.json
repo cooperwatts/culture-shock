@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "types": ["@cloudflare/workers-types"],
+    "lib": ["ES2023"],
+    "noEmit": false
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../packages/domain" },
+    { "path": "../../packages/crypto" },
+    { "path": "../../packages/config" },
+    { "path": "../../packages/rules" },
+    { "path": "../../packages/pack-sdk" },
+    { "path": "../../packages/matching" },
+    { "path": "../../packages/observability" },
+    { "path": "../../packages/ai" },
+    { "path": "../../packages/contracts" }
+  ]
+}

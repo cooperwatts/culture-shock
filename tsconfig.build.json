@@ -1,0 +1,19 @@
+// Shared TypeScript project references for `pnpm typecheck`.
+{
+  "files": [],
+  "references": [
+    { "path": "packages/domain" },
+    { "path": "packages/crypto" },
+    { "path": "packages/config" },
+    { "path": "packages/rules" },
+    { "path": "packages/pack-sdk" },
+    { "path": "packages/matching" },
+    { "path": "packages/ai" },
+    { "path": "packages/contracts" },
+    { "path": "packages/notifications" },
+    { "path": "packages/observability" },
+    { "path": "packages/ui" },
+    { "path": "apps/api" },
+    { "path": "apps/jobs" }
+  ]
+}

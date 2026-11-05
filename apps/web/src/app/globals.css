@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Everything below is derived from the published brand tokens. No colour,
+ * radius or type size is chosen here, so changing the theme moves the whole
+ * interface rather than part of it.
+ */
+:root {
+  color-scheme: light;
+
+  /* Fallbacks for engines without color-mix; refined in the @supports block. */
+  --cs-surface-sunken: var(--cs-color-muted);
+  --cs-surface-hover: var(--cs-color-muted);
+  --cs-hairline: var(--cs-color-border);
+  --cs-shadow-color: rgb(0 0 0 / 0.1);
+  --cs-wash-accent: var(--cs-color-muted);
+  --cs-texture-ink: var(--cs-color-border);
+
+  /* The brand picks one radius; the rest of the shape language follows it. */
+  --cs-radius-sm: calc(var(--cs-radius) * 0.5);
+  --cs-radius-lg: calc(var(--cs-radius) * 1.75);
+  --cs-radius-xl: calc(var(--cs-radius) * 2.5);
+
+  /* Modular type scale driven by the brand's own ratio, previously unused. */
+  --cs-text-step-1: calc(var(--cs-font-size-base) * var(--cs-font-scale));
+  --cs-text-step-2: calc(var(--cs-text-step-1) * var(--cs-font-scale));
+  --cs-text-step-3: calc(var(--cs-text-step-2) * var(--cs-font-scale));
+
+  /*
+   * Display type shrinks on narrow screens without abandoning the ratio. The
+   * scale compounds fast, so the ceiling is step 3: a brand choosing 1.6 would
+   * otherwise reach absurd headline sizes.
+   */
+  --cs-text-title: clamp(
+    var(--cs-font-size-base),
+    0.4vw + var(--cs-font-size-base),
+    var(--cs-text-step-1)
+  );
+  --cs-text-display: clamp(
+    var(--cs-text-step-1),
+    2.2vw + var(--cs-font-size-base),
+    var(--cs-text-step-3)
+  );
+
+  --cs-shadow-sm: 0 1px 2px -1px var(--cs-shadow-color);
+  --cs-shadow-md:
+    0 1px 2px -1px var(--cs-shadow-color),
+    0 6px 16px -8px var(--cs-shadow-color);
+
+  --cs-gradient-brand: linear-gradient(
+    110deg,
+    var(--cs-color-primary),
+    var(--cs-color-accent)
+  );
+}
+
+@supports (background: color-mix(in oklab, red 50%, transparent)) {
+  :root {
+    /* Mixing toward the background keeps these safely behind existing text. */
+    --cs-surface-sunken: color-mix(
+      in oklab,
+      var(--cs-color-muted) 55%,
+      var(--cs-color-background)
+    );
+    --cs-surface-hover: color-mix(
+      in oklab,
+      var(--cs-color-muted) 75%,
+      var(--cs-color-background)
+    );
+    --cs-hairline: color-mix(
+      in oklab,
+      var(--cs-color-border) 55%,
+      var(--cs-color-background)
+    );
+    --cs-shadow-color: color-mix(
+      in oklab,
+      var(--cs-color-foreground) 14%,
+      transparent
+    );
+    --cs-wash-accent: color-mix(
+      in oklab,
+      var(--cs-color-accent) 9%,
+      var(--cs-color-background)
+    );
+    --cs-texture-ink: color-mix(
+      in oklab,
+      var(--cs-color-foreground) 14%,
+      transparent
+    );
+  }
+}
+
+body {
+  background-color: var(--cs-color-background);
+  color: var(--cs-color-foreground);
+  font-family: var(--cs-font-body);
+  font-size: var(--cs-font-size-base);
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--cs-font-heading);
+}
+
+/* Visible focus is never removed; keyboard users must always see where they are. */
+:focus-visible {
+  outline: 3px solid var(--cs-color-accent);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+}
+
+.skip-link:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 50;
+  padding: 0.5rem 1rem;
+  background-color: var(--cs-color-background);
+  border: 2px solid var(--cs-color-accent);
+}
+
+@layer components {
+  /* A 2px rule carrying the brand gradient. Ends page headers. */
+  .cs-rule-brand {
+    height: 2px;
+    border: 0;
+    background: var(--cs-gradient-brand);
+    opacity: 0.9;
+  }
+
+  /* Decorative dot field. Nothing that has to be read sits on it. */
+  .cs-texture {
+    background-image: radial-gradient(
+      circle at 1px 1px,
+      var(--cs-texture-ink) 1px,
+      transparent 0
+    );
+    background-size: 18px 18px;
+    -webkit-mask-image: linear-gradient(to bottom left, #000, transparent 70%);
+    mask-image: linear-gradient(to bottom left, #000, transparent 70%);
+  }
+
+  /* Transform only, so a hover never reflows the row it sits in. */
+  .cs-lift {
+    transition:
+      transform 160ms ease,
+      box-shadow 160ms ease,
+      border-color 160ms ease;
+  }
+
+  .cs-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--cs-shadow-md);
+  }
+
+  .cs-nudge {
+    transition: transform 160ms ease;
+  }
+
+  .group:hover .cs-nudge {
+    transform: translateX(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .cs-lift:hover,
+  .group:hover .cs-nudge {
+    transform: none;
+  }
+}

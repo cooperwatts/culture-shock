@@ -1,0 +1,66 @@
+name: Culture Pack proposal
+description: Propose a new programme to ship with the project
+labels: ["culture-pack"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Packs are JSON files in `packs/`. You do not need to understand the platform internals to
+        write one, and you are welcome to open a pull request directly instead of this issue.
+
+        Use this if you want to discuss the idea first, or if you are not sure the platform can
+        express it.
+
+  - type: input
+    id: name
+    attributes:
+      label: What is it called
+    validations:
+      required: true
+
+  - type: textarea
+    id: purpose
+    attributes:
+      label: What is it for
+      description: What problem does it solve for an organization, and how would you know it worked?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mechanic
+    attributes:
+      label: How does it work
+      options:
+        - Pairs people up
+        - Small groups
+        - Buddy assignment, experienced with new
+        - Recognition only, no matching
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: missions
+    attributes:
+      label: What are participants asked to do
+      description: Include how it works for someone with no overlapping working hours.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: It works for remote participants without a live meeting
+          required: true
+        - label: It needs no home address, personal email or phone number
+          required: true
+        - label: Taking part is optional
+          required: true
+
+  - type: textarea
+    id: run-before
+    attributes:
+      label: Have you run this with real people
+      description: Not required, but a pack that has actually been used is more valuable than one that has not.

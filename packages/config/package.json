@@ -1,0 +1,18 @@
+{
+  "name": "@culture-shock/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@culture-shock/domain": "workspace:*",
+    "zod": "^3.24.1"
+  }
+}

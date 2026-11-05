@@ -1,0 +1,20 @@
+{
+  "name": "@culture-shock/jobs",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@culture-shock/config": "workspace:*",
+    "@culture-shock/crypto": "workspace:*",
+    "@culture-shock/domain": "workspace:*",
+    "@culture-shock/notifications": "workspace:*",
+    "@culture-shock/observability": "workspace:*",
+    "@culture-shock/pack-sdk": "workspace:*"
+  }
+}

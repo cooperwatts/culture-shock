@@ -1,0 +1,68 @@
+name: Bug report
+description: Something behaves differently from what the docs say
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not include real participant data. Redact it or construct a reproduction.
+
+        For security vulnerabilities, do not open an issue. See SECURITY.md.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what you got instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Steps, or a failing test if you have one.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Matching
+        - Culture Packs or the rules engine
+        - Notifications and delivery
+        - Authentication or permissions
+        - Privacy, exports or erasure
+        - Web interface
+        - Deployment or configuration
+        - Not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Local or deployed, Node version, anything unusual about the configuration.
+      value: |
+        - Running: local / deployed
+        - Node:
+        - Identity provider:
+        - AI enabled: yes / no
+        - Email provider:
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Redacted. The structured logger scrubs most things, but check before pasting.
+      render: json

@@ -1,0 +1,232 @@
+{
+  "id": "cross-team-connector",
+  "schemaVersion": "1.0.0",
+  "version": "1.0.0",
+  "name": { "en-CA": "Cross-Team Connector" },
+  "summary": {
+    "en-CA": "Deliberately connects people across departments around a shared topic, with a follow-up interaction and bridge metrics."
+  },
+  "provenance": { "origin": "builtin", "author": "Culture Shock" },
+  "requiredCapabilities": [
+    "enrollment.self-serve",
+    "matching.pair",
+    "matching.group",
+    "activity.conversation-prompt",
+    "activity.milestone",
+    "activity.survey",
+    "communications.templated",
+    "insights.aggregate"
+  ],
+  "configurationSchema": [
+    {
+      "key": "focus_topics",
+      "type": "stringList",
+      "label": { "en-CA": "Shared discussion topics" },
+      "required": true,
+      "maxItems": 10,
+      "default": ["Customer experience", "Ways of working", "Upcoming priorities"]
+    },
+    {
+      "key": "group_size",
+      "type": "number",
+      "label": { "en-CA": "People per group" },
+      "required": true,
+      "min": 2,
+      "max": 4,
+      "default": 3
+    },
+    {
+      "key": "require_cross_department",
+      "type": "boolean",
+      "label": { "en-CA": "Require every group to span departments" },
+      "required": false,
+      "default": true
+    },
+    {
+      "key": "follow_up_weeks",
+      "type": "number",
+      "label": { "en-CA": "Weeks before the follow-up interaction" },
+      "required": false,
+      "min": 1,
+      "max": 12,
+      "default": 4
+    }
+  ],
+  "defaults": {
+    "group_size": 3,
+    "require_cross_department": true,
+    "follow_up_weeks": 4
+  },
+  "objectives": [
+    {
+      "key": "break_silos",
+      "title": { "en-CA": "Break organizational silos" },
+      "description": { "en-CA": "Create working relationships between departments that rarely overlap." },
+      "metric": "department_bridge_score"
+    },
+    {
+      "key": "organizational_reach",
+      "title": { "en-CA": "Organizational reach" },
+      "description": { "en-CA": "Increase the share of departments that are actively connected to one another." },
+      "metric": "organizational_reach"
+    }
+  ],
+  "eligibility": [
+    {
+      "id": "eligibility.enrolled-only",
+      "category": "eligibility",
+      "priority": 10,
+      "when": { "field": "participant.state", "op": "neq", "value": "enrolled" },
+      "then": { "type": "deny", "code": "not_enrolled" }
+    },
+    {
+      "id": "eligibility.department-required",
+      "category": "eligibility",
+      "priority": 20,
+      "description": "Cross-department matching needs a department; participants without one are grouped by interest instead.",
+      "when": { "field": "participant.department", "op": "isSet", "value": false },
+      "then": { "type": "setPool", "pool": "unspecified_department" }
+    }
+  ],
+  "rules": [
+    {
+      "id": "privacy.pseudonymous",
+      "category": "privacy",
+      "priority": 10,
+      "then": { "type": "setPrivacyMode", "mode": "pseudonymous" }
+    },
+    {
+      "id": "matching.different-department",
+      "category": "matching",
+      "priority": 20,
+      "then": { "type": "setMatchingConstraint", "constraint": "different_department" }
+    },
+    {
+      "id": "matching.no-repeat",
+      "category": "matching",
+      "priority": 21,
+      "then": { "type": "setMatchingConstraint", "constraint": "no_repeat_match" }
+    },
+    {
+      "id": "inclusion.remote-overlap",
+      "category": "inclusion",
+      "priority": 30,
+      "description": "Remote participants with little overlap get the asynchronous track rather than a 6am meeting.",
+      "when": {
+        "all": [
+          { "field": "participant.remotePreference", "op": "eq", "value": "remote" },
+          { "field": "match.timeZoneOverlapMinutes", "op": "lte", "value": 60 }
+        ]
+      },
+      "then": { "type": "setPool", "pool": "asynchronous" }
+    },
+    {
+      "id": "schedule.follow-up",
+      "category": "schedule",
+      "priority": 40,
+      "then": { "type": "scheduleRelativeAction", "action": "collect_feedback", "anchor": "instance_end", "offsetMinutes": -2880 }
+    }
+  ],
+  "workflow": {
+    "entry": "open",
+    "nodes": [
+      { "key": "open", "action": "open_enrollment", "next": ["invite"] },
+      { "key": "invite", "action": "send_notification", "templateKey": "enrollment_open", "next": ["remind"] },
+      { "key": "remind", "action": "send_notification", "templateKey": "enrollment_reminder", "next": ["close"] },
+      { "key": "close", "action": "close_enrollment", "next": ["match"] },
+      { "key": "match", "action": "run_matching", "timeoutMinutes": 120, "next": ["approve"] },
+      { "key": "approve", "action": "publish_matches", "humanGate": true, "next": ["announce"] },
+      { "key": "announce", "action": "send_notification", "templateKey": "match_published", "next": ["missions"] },
+      { "key": "missions", "action": "assign_missions", "next": ["followup"] },
+      { "key": "followup", "action": "send_notification", "templateKey": "mission_reminder", "next": ["feedback"] },
+      { "key": "feedback", "action": "collect_feedback", "next": ["done"] },
+      { "key": "done", "action": "finish", "next": [] }
+    ]
+  },
+  "matching": {
+    "strategyKey": "cross-functional",
+    "groupSize": 3,
+    "allowTriadForOddCount": true,
+    "weights": { "department_diversity": 1, "team_diversity": 0.8, "novel_connection": 0.9, "schedule_overlap": 0.5 },
+    "hardConstraints": ["no_self_match", "no_repeat_match", "different_department"]
+  },
+  "missions": [
+    {
+      "key": "shared_topic",
+      "title": { "en-CA": "Discuss a shared topic" },
+      "description": { "en-CA": "Pick one topic from the list and spend half an hour comparing how your teams see it." },
+      "requiredForCompletion": true,
+      "asynchronousAlternative": { "en-CA": "Post your answers to the topic prompts in a shared thread instead of meeting live." },
+      "dueOffsetMinutes": 20160
+    },
+    {
+      "key": "follow_up",
+      "title": { "en-CA": "One follow-up" },
+      "description": { "en-CA": "Send one useful thing to someone in your group after the first conversation." },
+      "requiredForCompletion": false,
+      "dueOffsetMinutes": 40320
+    }
+  ],
+  "activities": [
+    { "key": "conversation", "type": "conversation", "title": { "en-CA": "Topic conversation" }, "optional": false, "maxPerParticipant": 3 },
+    { "key": "follow_up", "type": "milestone", "title": { "en-CA": "Follow-up interaction" }, "optional": true, "maxPerParticipant": 3 },
+    { "key": "survey", "type": "survey", "title": { "en-CA": "Closing survey" }, "optional": true, "maxPerParticipant": 1 }
+  ],
+  "communications": [
+    {
+      "key": "enrollment_open",
+      "channel": "email",
+      "trigger": "enrollment_open",
+      "subject": { "en-CA": "{{experience.name}} is open" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\n{{organization.name}} is running {{experience.name}} to connect people across departments. Joining is optional and closes {{experience.enrollmentClosesAt}}.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "{{organization.name}} is running {{experience.name}} to connect people across departments. Joining is optional and closes {{experience.enrollmentClosesAt}}. {{links.experienceUrl}}"
+      }
+    },
+    {
+      "key": "enrollment_reminder",
+      "channel": "email",
+      "trigger": "enrollment_reminder",
+      "subject": { "en-CA": "Sign-up closes soon for {{experience.name}}" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\nSign-up for {{experience.name}} closes at {{experience.enrollmentClosesAt}}.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "Sign-up for {{experience.name}} closes at {{experience.enrollmentClosesAt}}. {{links.experienceUrl}}"
+      }
+    },
+    {
+      "key": "match_published",
+      "channel": "email",
+      "trigger": "match_published",
+      "subject": { "en-CA": "Your group for {{experience.name}}" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\nYour group is ready. Times are shown in {{experience.timeZone}}, and a written alternative is available if your hours do not line up.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "Your group is ready. Times are shown in {{experience.timeZone}}. A written alternative is available. {{links.experienceUrl}}"
+      }
+    },
+    {
+      "key": "mission_reminder",
+      "channel": "email",
+      "trigger": "mission_reminder",
+      "subject": { "en-CA": "A follow-up for {{experience.name}}" },
+      "body": {
+        "en-CA": "Hello {{participant.displayName}},\n\nIf your group has already met, this is a good moment to send one follow-up to someone you spoke with.\n\n{{links.experienceUrl}}"
+      },
+      "plainTextBody": {
+        "en-CA": "If your group has already met, send one follow-up to someone you spoke with. {{links.experienceUrl}}"
+      }
+    }
+  ],
+  "aiAssistants": [],
+  "reveal": { "enabled": false, "mode": "pseudonymous", "requiresDesignerApproval": true, "offsetMinutesFromEnd": 0 },
+  "insights": {
+    "metrics": ["participation_rate", "department_bridge_score", "organizational_reach", "engagement_rate", "remote_inclusion_score"],
+    "minimumCohortSize": 10
+  },
+  "dataRequirements": ["department", "team", "geography", "time_zone", "remote_preference", "interests"]
+}
